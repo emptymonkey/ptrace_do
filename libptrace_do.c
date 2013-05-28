@@ -105,14 +105,10 @@ struct ptrace_do *ptrace_do_init(int pid){
  *			(e.g. the file path needed for an open() syscall).
  *
  *		Note: 
- *			The actual memory affected on the stack will be word aligned
- *			and cover complete words. Enough words will be prepared to 
- *			fit all of 'size' inside of it. (Finer granularity of memory
- *			is irrelevant given that PTRACE_PEEKDATA and PTRACE_POKEDATA
- *			work on word sized chunks of memory.) Multiple calls to
- *			ptrace_do_malloc will make multiple calls to mmap in the 
- *			remote context. This should be fine and will usually be
- *			arranged as page aligned sequential chunks by the OS.
+ *			Multiple calls to ptrace_do_malloc will make multiple calls to
+ *			mmap in the remote context. This should be fine and will
+ *			usually be arranged as page aligned sequential chunks by the
+ *			OS.
  *
  **********************************************************************/
 void *ptrace_do_malloc(struct ptrace_do *target, size_t size){
