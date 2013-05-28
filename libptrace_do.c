@@ -91,7 +91,7 @@ struct ptrace_do *ptrace_do_init(int pid){
  *	void *ptrace_do_malloc(struct ptrace_do *target, size_t size)
  *
  *		Input:
- *      This sessions ptrace_do object.
+ *			This sessions ptrace_do object.
  *			The desired size for the users local buffer.
  *
  *		Output:
@@ -176,7 +176,7 @@ void *ptrace_do_malloc(struct ptrace_do *target, size_t size){
  *	void *ptrace_do_push_mem(struct ptrace_do *target, void *local_address)
  *
  *		Input:
- *      This sessions ptrace_do object.
+ *			This sessions ptrace_do object.
  *			A reference to a local buffer that was created with ptrace_do_malloc().
  *
  *		Output:
@@ -231,7 +231,7 @@ void *ptrace_do_push_mem(struct ptrace_do *target, void *local_address){
  *	void *ptrace_do_pull_mem(struct ptrace_do *target, void *local_address)
  *
  *		Input:
- *      This sessions ptrace_do object.
+ *			This sessions ptrace_do object.
  *			A reference to a local buffer that was created with ptrace_do_malloc().
  *
  *		Output:
@@ -288,7 +288,7 @@ void *ptrace_do_pull_mem(struct ptrace_do *target, void *local_address){
  *		unsigned long rdx, unsigned long r10, unsigned long r8, unsigned long r9)
  *
  *		Input:
- *      This sessions ptrace_do object.
+ *			This sessions ptrace_do object.
  *			The registers as you would want to set them for a syscall.
  *				(Registers that are not needed should be set to 0.)
  *
@@ -418,7 +418,7 @@ RETRY:
  *	void ptrace_do_cleanup(struct ptrace_do *target)
  *
  *		Input:
- *      This sessions ptrace_do object.
+ *			This sessions ptrace_do object.
  *
  *		Output:
  *			None.
