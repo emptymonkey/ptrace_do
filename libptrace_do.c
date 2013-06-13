@@ -158,9 +158,9 @@ void *ptrace_do_malloc(struct ptrace_do *target, size_t size){
 	}	
 
 	if(last_mem_node){
-		last_mem_node->next = new_mem_node;	
+		last_mem_node->next = new_mem_node;
 	}else{
-		target->mem_head = new_mem_node;	
+		target->mem_head = new_mem_node;
 	}
 
 	return(new_mem_node->local_address);
@@ -294,7 +294,7 @@ void *ptrace_do_pull_mem(struct ptrace_do *target, void *local_address){
  *			On error, errno will be set appropriately.
  * 
  *		Purpose:
- *			Set up and execute a syscall.
+ *			Set up and execute a syscall within the remote process.
  *
  *		Example code for running "exit(42);" in the remote process:
  *
@@ -366,7 +366,8 @@ RETRY:
 	if(status){
 		if(WIFEXITED(status)){
 			errno = ECHILD;
-			fprintf(stderr, "%s: waitpid(%d, %lx, 0): WIFEXITED(%d)\n", program_invocation_short_name, target->pid, (unsigned long) &status, status);
+			fprintf(stderr, "%s: waitpid(%d, %lx, 0): WIFEXITED(%d)\n", program_invocation_short_name, \
+					target->pid, (unsigned long) &status, status);
 			return(-1);
 		}
 		if(WIFSIGNALED(status)){
@@ -380,7 +381,7 @@ RETRY:
 			if(target->sig_ignore & 1<<WSTOPSIG(status)){
 				goto RETRY;
 			}else if(WSTOPSIG(status) != SIGTRAP){
-				sig_remember = status;			
+				sig_remember = status;
 				goto RETRY;
 			}
 		}
@@ -405,7 +406,7 @@ RETRY:
 
 	// Made it this far. Sounds like the ptrace_do_syscall() was fine. :)
 	errno = 0;
-	return(attack_regs.rax);	
+	return(attack_regs.rax);
 }
 
 
@@ -421,9 +422,8 @@ RETRY:
  *
  *		Purpose:
  *			Restore the registers of the target process. Free remote 
- *			memory buffers. Destroy the local objects (though not the 
- *			local buffers. Thats up to the calling code to free.) Detach
- *			from the process and let it resume.
+ *			memory buffers. Destroy and free the local objects.
+ *			Detach from the process and let it resume.
  *
  *			Note: It is intended that this function is safe to call when 
  *			attempting to gracefully disengage the target process after

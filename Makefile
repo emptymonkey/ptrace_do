@@ -4,15 +4,15 @@ AR = ar
 ARFLAGS = rcs
 RANLIB = ranlib
 
-all: libptrace_do.a driver
+all: libptrace_do.a test
 
 libptrace_do.a: libptrace_do.c libptrace_do.h
 	$(CC) $(CFLAGS) -c libptrace_do.c
 	$(AR) $(ARFLAGS) libptrace_do.a libptrace_do.o
 	$(RANLIB) libptrace_do.a
 
-driver: 
-	$(CC) $(CFLAGS) -L. -o driver driver.c -lptrace_do
+test: test.c
+	$(CC) $(CFLAGS) -L. -o test test.c -lptrace_do
 
 clean: 
-	rm libptrace_do.o libptrace_do.a driver
+	rm libptrace_do.o libptrace_do.a test
