@@ -58,7 +58,8 @@ struct ptrace_do *ptrace_do_init(int pid){
 
 	if((retval = ptrace(PTRACE_ATTACH, target->pid, NULL, NULL)) == -1){
 		fprintf(stderr, "%s: ptrace(%d, %d, %lx, %lx): %s\n", program_invocation_short_name, \
-				(int) PTRACE_ATTACH, (int) target->pid, (long unsigned int) NULL, (long unsigned int) NULL, strerror(errno));
+				(int) PTRACE_ATTACH, (int) target->pid, (long unsigned int) NULL, \
+				(long unsigned int) NULL, strerror(errno));
 		free(target);
 		return(NULL);
 	}
@@ -77,7 +78,8 @@ struct ptrace_do *ptrace_do_init(int pid){
 
 	if((retval = ptrace(PTRACE_GETREGS, target->pid, NULL, &(target->saved_regs))) == -1){
 		fprintf(stderr, "%s: ptrace(%d, %d, %lx, %lx): %s\n", program_invocation_short_name, \
-				(int) PTRACE_GETREGS, (int) target->pid, (long unsigned int) NULL, (long unsigned int) &(target->saved_regs), strerror(errno));
+				(int) PTRACE_GETREGS, (int) target->pid, (long unsigned int) NULL, \
+				(long unsigned int) &(target->saved_regs), strerror(errno));
 		free(target);
 		return(NULL);
 	}
@@ -147,11 +149,13 @@ void *ptrace_do_malloc(struct ptrace_do *target, size_t size){
 	new_mem_node->word_count = (size / sizeof(long));
 
 	if((long) (new_mem_node->remote_address = ptrace_do_syscall(target, \
-					__NR_mmap, (unsigned long) NULL, size, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0)) < 0){
+					__NR_mmap, (unsigned long) NULL, size, \
+					PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0)) < 0){
 		fprintf(stderr, "%s: ptrace_do_syscall(%lx, %lx, %lx, %lx, %lx, %lx, %lx, %lx): %s\n", \
 				program_invocation_short_name, (unsigned long) target, \
-				(unsigned long) __NR_mmap, (unsigned long) NULL, (unsigned long) size, (unsigned long) (PROT_READ|PROT_WRITE), \
-				(unsigned long) (MAP_PRIVATE|MAP_ANONYMOUS), (unsigned long) -1, (unsigned long) 0, strerror(-new_mem_node->remote_address));
+				(unsigned long) __NR_mmap, (unsigned long) NULL, (unsigned long) size, \
+				(unsigned long) (PROT_READ|PROT_WRITE), (unsigned long) (MAP_PRIVATE|MAP_ANONYMOUS), \
+				(unsigned long) -1, (unsigned long) 0, strerror(-new_mem_node->remote_address));
 		free(new_mem_node->local_address);
 		free(new_mem_node);
 		return(NULL);
@@ -209,7 +213,8 @@ void *ptrace_do_push_mem(struct ptrace_do *target, void *local_address){
 	for(i = 0; i < (int) node->word_count; i++){
 		memcpy(&ptrace_data, &(((char *) local_address)[i * sizeof(long)]), sizeof(long));
 
-		if((retval = ptrace(PTRACE_POKETEXT, target->pid, (void *) (node->remote_address + (i * sizeof(long))), (void *) ptrace_data)) == -1){
+		if((retval = ptrace(PTRACE_POKETEXT, target->pid, \
+						(void *) (node->remote_address + (i * sizeof(long))), (void *) ptrace_data)) == -1){
 			fprintf(stderr, "%s: ptrace(%d, %d, %lx, %lx): %s\n", program_invocation_short_name, \
 					(int) PTRACE_POKETEXT, (int) target->pid, \
 					(long unsigned int) (node->remote_address + (i * sizeof(long))), \
@@ -263,7 +268,8 @@ void *ptrace_do_pull_mem(struct ptrace_do *target, void *local_address){
 	for(i = 0; i < (int) node->word_count; i++){
 
 		errno = 0;
-		ptrace_data = ptrace(PTRACE_PEEKTEXT, target->pid, (void *) (node->remote_address + (i * sizeof(long))), NULL);
+		ptrace_data = ptrace(PTRACE_PEEKTEXT, target->pid, \
+				(void *) (node->remote_address + (i * sizeof(long))), NULL);
 		if(errno){
 			fprintf(stderr, "%s: ptrace(%d, %d, %lx, NULL): %s\n", program_invocation_short_name, \
 					(int) PTRACE_PEEKTEXT, (int) target->pid, \
@@ -345,7 +351,8 @@ unsigned long ptrace_do_syscall(struct ptrace_do *target, unsigned long rax, \
 
 	if((retval = ptrace(PTRACE_SETREGS, target->pid, NULL, &attack_regs)) == -1){
 		fprintf(stderr, "%s: ptrace(%d, %d, %lx, %lx): %s\n", program_invocation_short_name, \
-				(int) PTRACE_SETREGS, (int) target->pid, (long unsigned int) NULL, (long unsigned int) &attack_regs, strerror(errno));
+				(int) PTRACE_SETREGS, (int) target->pid, (long unsigned int) NULL, \
+				(long unsigned int) &attack_regs, strerror(errno));
 		return(-1);
 	}
 
@@ -353,7 +360,8 @@ RETRY:
 	status = 0;
 	if((retval = ptrace(PTRACE_SINGLESTEP, target->pid, NULL, NULL)) == -1){
 		fprintf(stderr, "%s: ptrace(%d, %d, %lx, %lx): %s\n", program_invocation_short_name, \
-				(int) PTRACE_SINGLESTEP, (int) target->pid, (long unsigned int) NULL, (long unsigned int) NULL, strerror(errno));
+				(int) PTRACE_SINGLESTEP, (int) target->pid, (long unsigned int) NULL, \
+				(long unsigned int) NULL, strerror(errno));
 		return(-1);
 	}
 
@@ -373,7 +381,8 @@ RETRY:
 		if(WIFSIGNALED(status)){
 			errno = ECHILD;
 			fprintf(stderr, "%s: waitpid(%d, %lx, 0): WIFSIGNALED(%d): WTERMSIG(%d): %d\n", \
-					program_invocation_short_name, target->pid, (unsigned long) &status, status, status, WTERMSIG(status));
+					program_invocation_short_name, target->pid, (unsigned long) &status, \
+					status, status, WTERMSIG(status));
 			return(-1);
 		}
 		if(WIFSTOPPED(status)){
@@ -387,14 +396,16 @@ RETRY:
 		}
 		if(WIFCONTINUED(status)){
 			errno = EINTR;
-			fprintf(stderr, "%s: waitpid(%d, %lx, 0): WIFCONTINUED(%d)\n", program_invocation_short_name, target->pid, (unsigned long) &status, status);
+			fprintf(stderr, "%s: waitpid(%d, %lx, 0): WIFCONTINUED(%d)\n", program_invocation_short_name, \
+					target->pid, (unsigned long) &status, status);
 			return(-1);
 		}
 	}
 
 	if((retval = ptrace(PTRACE_GETREGS, target->pid, NULL, &attack_regs)) == -1){
 		fprintf(stderr, "%s: ptrace(%d, %d, %lx, %lx): %s\n", program_invocation_short_name, \
-				(int) PTRACE_GETREGS, (int) target->pid, (long unsigned int) NULL, (long unsigned int) &attack_regs, strerror(errno));
+				(int) PTRACE_GETREGS, (int) target->pid, (long unsigned int) NULL, \
+				(long unsigned int) &attack_regs, strerror(errno));
 		return(-1);
 	}
 
@@ -440,11 +451,12 @@ void ptrace_do_cleanup(struct ptrace_do *target){
 	while(this_node){
 
 		if((retval = (int) ptrace_do_syscall(target, \
-						__NR_munmap, this_node->remote_address, this_node->word_count * sizeof(long), 0, 0, 0, 0)) < 0){
+						__NR_munmap, this_node->remote_address, this_node->word_count * sizeof(long), \
+						0, 0, 0, 0)) < 0){
 			fprintf(stderr, "%s: ptrace_do_syscall(%lx, %d, %lx, %d, %d, %d, %d, %d): %s\n", \
 					program_invocation_short_name, \
-					(unsigned long) target, __NR_munmap, this_node->remote_address, (int) (this_node->word_count * sizeof(long)), 0, 0, 0, 0, \
-					strerror(-retval));
+					(unsigned long) target, __NR_munmap, this_node->remote_address, \
+					(int) (this_node->word_count * sizeof(long)), 0, 0, 0, 0, strerror(-retval));
 		}	
 
 		free(this_node->local_address);
@@ -456,12 +468,14 @@ void ptrace_do_cleanup(struct ptrace_do *target){
 
 	if((retval = ptrace(PTRACE_SETREGS, target->pid, NULL, &(target->saved_regs))) == -1){
 		fprintf(stderr, "%s: ptrace(%d, %d, %lx, %lx): %s\n", program_invocation_short_name, \
-				(int) PTRACE_SETREGS, (int) target->pid, (long unsigned int) NULL, (long unsigned int) &(target->saved_regs), strerror(errno));
+				(int) PTRACE_SETREGS, (int) target->pid, (long unsigned int) NULL, \
+				(long unsigned int) &(target->saved_regs), strerror(errno));
 	}
 
 	if((retval = ptrace(PTRACE_DETACH, target->pid, NULL, NULL)) == -1){
 		fprintf(stderr, "%s: ptrace(%d, %d, %lx, %lx): %s\n", program_invocation_short_name, \
-				(int) PTRACE_DETACH, (int) target->pid, (long unsigned int) NULL, (long unsigned int) NULL, strerror(errno));
+				(int) PTRACE_DETACH, (int) target->pid, (long unsigned int) NULL, \
+				(long unsigned int) NULL, strerror(errno));
 	}
 
 	free(target);
