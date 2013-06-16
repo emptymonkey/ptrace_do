@@ -8,11 +8,11 @@ _ptrace_do_ is a [ptrace](http://en.wikipedia.org/wiki/Ptrace) library to simpli
 
 **That's awesome! [1337 h4X0rZ rUL3!!](http://hackertyper.com/)**
 
-Sorry, no. This isn't an exploit. This code only uses standard, though not commonly known, interfaces for process interaction and control. In order to affect a process you don't already own, you will need to have the CAP_SYS_PTRACE [capability](http://linux.die.net/man/7/capabilities) (i.e. root).
+Sorry, no. This isn't an exploit. This code only uses standard, though not commonly known, interfaces for process interaction and control. In order to affect a process you don't already own, you will need to have the [CAP_SYS_PTRACE](http://lxr.linux.no/#linux+v3.9.4/include/uapi/linux/capability.h#L218) [capability](http://linux.die.net/man/7/capabilities) (i.e. root).
 
-**What OS / Arch combo will this work on?**
+**Can I use this on any Linux host?**
 
-Right now, only Linux x86_64. Given that we are using ptrace() for injecting syscalls in their assembly language form, this code is not portable. I did try to keep it as modular as possible, so extending it to a different Linux architecture shouldn't be too difficult.
+Right now, this will only work on Linux hosts with the x86_64 archtecture. Given that we are using ptrace() for injecting syscalls in their assembly language form, this code is not portable. I did try to keep it as modular as possible, so extending it to a different Linux architecture shouldn't be too difficult.
 
 ## Usage ##
 
@@ -46,6 +46,8 @@ Right now, only Linux x86_64. Given that we are using ptrace() for injecting sys
 	ptrace_do_cleanup(target);
 ```
 
+For a more advanced usage, please examine my [shelljack](https://github.com/emptymonkey/shelljack) code, for which this library was written to accomidate.
+
 ## Installation ##
 
 ```
@@ -55,4 +57,4 @@ make
 ```
 ## Documentation ##
 
-The functions are documented inside the source.
+The functions are more deeply detailed inside of the source.
