@@ -61,11 +61,13 @@ Here is the brief list of function interfaces. These functions are documented in
 
 	/* ptrace_do_init() hooks the target and prepares it to run our commands. */
 	struct ptrace_do *ptrace_do_init(int pid);
-	
-	/* ptrace_do_malloc() allocates memory in the remote process for our use, without worry of upsetting the remote memory state. */
+
+	/* ptrace_do_malloc() allocates memory in the remote process for our use, without worry of
+		upsetting the remote memory state. */
 	void *ptrace_do_malloc(struct ptrace_do *target, size_t size);
 	
-	/* ptrace_do_push_mem() and ptrace_do_pull_mem() synchronize the memory states between local and remote buffers. */ 
+	/* ptrace_do_push_mem() and ptrace_do_pull_mem() synchronize the memory states between local
+		and remote buffers. */ 
 	void *ptrace_do_push_mem(struct ptrace_do *target, void *local_address);
 	void *ptrace_do_pull_mem(struct ptrace_do *target, void *local_address);
 	
@@ -75,7 +77,8 @@ Here is the brief list of function interfaces. These functions are documented in
 	
 	/* ptrace_do_syscall() will execute the given syscall inside the remote process. */
 	unsigned long ptrace_do_syscall(struct ptrace_do *target, unsigned long rax, \
-	                unsigned long rdi, unsigned long rsi, unsigned long rdx, unsigned long r10, unsigned long r8, unsigned long r9);
+	                unsigned long rdi, unsigned long rsi, unsigned long rdx, \
+                  unsigned long r10, unsigned long r8, unsigned long r9);
 	
 	/* ptrace_do_cleanup() will detatch and do it's best to clean up the data structures. */
 	void ptrace_do_cleanup(struct ptrace_do *target);
