@@ -43,7 +43,7 @@ struct ptrace_do *ptrace_do_init(int pid);
 /* ptrace_do_malloc() allocates memory in the remote process for our use, without worry of upsetting the remote memory state. */
 void *ptrace_do_malloc(struct ptrace_do *target, size_t size);
 
-/* ptrace_do_push_mem() and ptrace_do_pull_mem() synchronize the memory states between local and remote. */ 
+/* ptrace_do_push_mem() and ptrace_do_pull_mem() synchronize the memory states between local and remote buffers. */ 
 void *ptrace_do_push_mem(struct ptrace_do *target, void *local_address);
 void *ptrace_do_pull_mem(struct ptrace_do *target, void *local_address);
 
