@@ -78,7 +78,7 @@ Here is the brief list of function interfaces. These functions are documented in
 	/* ptrace_do_syscall() will execute the given syscall inside the remote process. */
 	unsigned long ptrace_do_syscall(struct ptrace_do *target, unsigned long rax, \
 	                unsigned long rdi, unsigned long rsi, unsigned long rdx, \
-                  unsigned long r10, unsigned long r8, unsigned long r9);
+	                unsigned long r10, unsigned long r8, unsigned long r9);
 	
 	/* ptrace_do_cleanup() will detatch and do it's best to clean up the data structures. */
 	void ptrace_do_cleanup(struct ptrace_do *target);
