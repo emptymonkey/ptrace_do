@@ -49,12 +49,6 @@ Currently, _ptrace_do_ will only work on x86_64 Linux. Because it uses the Linux
 
 For a more advanced usage, please examine my [shelljack](https://github.com/emptymonkey/shelljack) code, for which this library was written to accomidate.
 
-## Installation ##
-
-	git clone git@github.com:emptymonkey/ptrace_do.git
-	cd ptrace_do
-	make
-
 ## Documentation ##
 
 Here is the brief list of function interfaces. These functions are documented in greater detail within the source.
@@ -82,4 +76,11 @@ Here is the brief list of function interfaces. These functions are documented in
 	
 	/* ptrace_do_cleanup() will detatch and do it's best to clean up the data structures. */
 	void ptrace_do_cleanup(struct ptrace_do *target);
+
+
+## Installation ##
+
+	git clone git@github.com:emptymonkey/ptrace_do.git
+	cd ptrace_do
+	make
 
