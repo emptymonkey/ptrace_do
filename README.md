@@ -80,7 +80,7 @@ Here is the brief list of function interfaces. These functions are documented in
 
 ## Installation ##
 
-	git clone git@github.com:emptymonkey/ptrace_do.git
+	git clone https://github.com/emptymonkey/ptrace_do.git
 	cd ptrace_do
 	make
 
