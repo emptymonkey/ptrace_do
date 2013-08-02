@@ -113,9 +113,6 @@ struct ptrace_do *ptrace_do_init(int pid){
  *
  **********************************************************************/
 void *ptrace_do_malloc(struct ptrace_do *target, size_t size){
-}
-
-void *ptrace_do_mmap(struct ptrace_do *target, size_t size){
 
 	struct mem_node *new_mem_node, *last_mem_node;
 
