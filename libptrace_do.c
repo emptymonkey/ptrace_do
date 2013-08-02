@@ -36,8 +36,7 @@
  *			The process id of the target.
  *
  *		Output:
- *			Pointer to a struct ptrace_do object if all is good, NULL in case
- *			of badness.
+ *			Pointer to a struct ptrace_do object. NULL on error.
  *
  *		Purpose:
  *			Initialize the session. Attach to the process and save its
@@ -97,7 +96,7 @@ struct ptrace_do *ptrace_do_init(int pid){
  *			The desired size for the users local buffer.
  *
  *		Output:
- *			A pointer to the local storage space.
+ *			A pointer to the local storage space. NULL on error.
  *
  *		Purpose:
  *			Reserve a chunk of memory of the given 'size' in both the local
@@ -114,6 +113,9 @@ struct ptrace_do *ptrace_do_init(int pid){
  *
  **********************************************************************/
 void *ptrace_do_malloc(struct ptrace_do *target, size_t size){
+}
+
+void *ptrace_do_mmap(struct ptrace_do *target, size_t size){
 
 	struct mem_node *new_mem_node, *last_mem_node;
 
@@ -181,7 +183,7 @@ void *ptrace_do_malloc(struct ptrace_do *target, size_t size){
  *
  *		Output:
  *			A pointer to the buffer in the remote process. (Presumably for
- *			use in a later syscall).
+ *			use in a later syscall). NULL on error.
  *
  *		Purpose:
  *			Copies the data in the local_address buffer to the buffer in
@@ -237,7 +239,7 @@ void *ptrace_do_push_mem(struct ptrace_do *target, void *local_address){
  *
  *		Output:
  *			A pointer to the buffer in the remote process. (Presumably for
- *			use in a later syscall).
+ *			use in a later syscall). NULL on error.
  *
  *		Purpose:
  *			Copies the data in the remote process buffer to the buffer in
