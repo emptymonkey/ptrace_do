@@ -284,6 +284,39 @@ void *ptrace_do_pull_mem(struct ptrace_do *target, void *local_address){
 
 /**********************************************************************
  *	 
+ * void *ptrace_do_get_remote_addr(struct ptrace_do *target, void *local_address) 
+ *	 
+ *	Input:  
+ *		This sessions ptrace_do object. 
+ *		A local memory address as returned by ptrace_do_malloc().
+ *	 
+ *	Output:
+ *		The remote memory address associated with the local address.
+ *		NULL will be returned on error (i.e. no matching address).
+ * 
+ **********************************************************************/
+void *ptrace_do_get_remote_addr(struct ptrace_do *target, void *local_address){
+	struct mem_node *node;
+
+	node = target->mem_head;
+	if(node){
+		while(node->next && node->local_address != local_address){
+			node = node->next;
+		}
+	}
+
+	if(!(node && (node->local_address == local_address))){
+		fprintf(stderr, "%s: ptrace_do_pull_mem(%lx, %lx): No matching address location\n",
+				program_invocation_short_name, (unsigned long) target, (unsigned long) local_address);
+		return(NULL);
+	}
+	
+	return((void *) node->remote_address);
+}
+
+
+/**********************************************************************
+ *	 
  *	unsigned long ptrace_do_syscall(struct ptrace_do *target, \
  *		unsigned long rax, unsigned long rdi, unsigned long rsi, \
  *		unsigned long rdx, unsigned long r10, unsigned long r8, unsigned long r9)

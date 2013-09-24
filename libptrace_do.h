@@ -47,6 +47,9 @@ void *ptrace_do_malloc(struct ptrace_do *target, size_t size);
 void *ptrace_do_push_mem(struct ptrace_do *target, void *local_address);
 void *ptrace_do_pull_mem(struct ptrace_do *target, void *local_address);
 
+/* Short helper function to translate your local address to the remote one. */
+void *ptrace_do_get_remote_addr(struct ptrace_do *target, void *local_addr);
+
 /* ptrace_do_sig_ignore() sets the signal mask for the remote process. */
 /* This is simple enough, we only need a macro. */
 /* Note, this is for *our* handling of remote signals. This won't persist once we detatch. */
