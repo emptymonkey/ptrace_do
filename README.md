@@ -1,10 +1,10 @@
 # ptrace_do #
 
-_ptrace_do_ is a [ptrace](http://en.wikipedia.org/wiki/Ptrace) library designed to simplify [syscall](http://en.wikipedia.org/wiki/Syscall) injection in Linux.
+<i>ptrace_do</i> is a [ptrace](http://en.wikipedia.org/wiki/Ptrace) library designed to simplify [syscall](http://en.wikipedia.org/wiki/Syscall) injection in Linux.
 
 **What is ptrace?**
 
-[ptrace](http://linux.die.net/man/2/ptrace) is the debugging interface provided by the [Linux](http://en.wikipedia.org/wiki/Linux) kernel. It allows you to connect to a running process, examine and alter its memory, and change it's runtime state. Unfortunately, it's quite complex and requires a solid understanding of the underlying architecture and OS. _ptrace_do_ was written to allow pentesters access to a simplified interface for injecting syscalls into a target process.
+[ptrace](http://linux.die.net/man/2/ptrace) is the debugging interface provided by the [Linux](http://en.wikipedia.org/wiki/Linux) kernel. It allows you to connect to a running process, examine and alter its memory, and change it's runtime state. Unfortunately, it's quite complex and requires a solid understanding of the underlying architecture and OS. <i>ptrace_do</i> was written to allow pentesters access to a simplified interface for injecting syscalls into a target process.
 
 The best introduction to ptrace that I've seen comes in the form of two articles by Pradeep Padala dating back to 2002:
 
@@ -17,7 +17,7 @@ Sorry, no. This isn't an ["exploit"](http://en.wikipedia.org/wiki/Sploit). This 
 
 **Can I use this on any Linux host?**
 
-Currently, _ptrace_do_ will only work on x86_64 Linux. Because it uses the Linux ptrace interface to inject assembly language [syscalls](http://en.wikipedia.org/wiki/Syscall) into a target process, nothing here is portable. I did try to keep it as modular as possible, and I would consider porting it to another architecture if it became popular enough. 
+Currently, <i>ptrace_do</i> will only work on x86_64 Linux. Because it uses the Linux ptrace interface to inject assembly language [syscalls](http://en.wikipedia.org/wiki/Syscall) into a target process, nothing here is portable. I did try to keep it as modular as possible, and I would consider porting it to another architecture if it became popular enough. 
 
 ## Usage ##
 
