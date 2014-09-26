@@ -45,7 +45,13 @@
  **********************************************************************/
 struct ptrace_do *ptrace_do_init(int pid){
 	int retval, status;
+	unsigned long peekdata;
+	unsigned long i;
 	struct ptrace_do *target;
+	siginfo_t siginfo;
+
+	struct parse_maps *map_current;
+
 
 	if((target = (struct ptrace_do *) malloc(sizeof(struct ptrace_do))) == NULL){
 		fprintf(stderr, "%s: malloc(%d): %s\n", program_invocation_short_name, \
@@ -55,24 +61,43 @@ struct ptrace_do *ptrace_do_init(int pid){
 	memset(target, 0, sizeof(struct ptrace_do));
 	target->pid = pid;
 
-	if((retval = ptrace(PTRACE_ATTACH, target->pid, NULL, NULL)) == -1){
-		fprintf(stderr, "%s: ptrace(%d, %d, %lx, %lx): %s\n", program_invocation_short_name, \
-				(int) PTRACE_ATTACH, (int) target->pid, (long unsigned int) NULL, \
-				(long unsigned int) NULL, strerror(errno));
-		free(target);
-		return(NULL);
-	}
 
-	if((retval = waitpid(target->pid, &status, 0)) < 1){
-		fprintf(stderr, "%s: waitpid(%d, %lx, 0): %s\n", program_invocation_short_name, \
-				(int) target->pid, (unsigned long) &status, strerror(errno));
-		free(target);
-		return(NULL);
-	}
+	// Here we test to see if the child is already attached. This may be the case if the child
+	// is a willing accomplice, aka PTRACE_TRACEME.
+	// We are testing if it is already traced by trying to read data, specifically its last 
+	// signal received. If PTRACE_GETSIGINFO is succesfull *and* the last signal recieved was 
+	// SIGTRAP, then it's prolly safe to assume this is the PTRACE_TRACEME case.
 
-	if(!WIFSTOPPED(status)){
-		free(target);
-		return(NULL);
+	memset(&siginfo, 0, sizeof(siginfo));
+	if(ptrace(PTRACE_GETSIGINFO, target->pid, NULL, &siginfo)){
+
+		if((retval = ptrace(PTRACE_ATTACH, target->pid, NULL, NULL)) == -1){
+			fprintf(stderr, "%s: ptrace(%d, %d, %lx, %lx): %s\n", program_invocation_short_name, \
+					(int) PTRACE_ATTACH, (int) target->pid, (long unsigned int) NULL, \
+					(long unsigned int) NULL, strerror(errno));
+			free(target);
+			return(NULL);
+		}
+
+		if((retval = waitpid(target->pid, &status, 0)) < 1){
+			fprintf(stderr, "%s: waitpid(%d, %lx, 0): %s\n", program_invocation_short_name, \
+					(int) target->pid, (unsigned long) &status, strerror(errno));
+			free(target);
+			return(NULL);
+		}
+
+		if(!WIFSTOPPED(status)){
+			free(target);
+			return(NULL);
+		}
+	}else{
+		if(siginfo.si_signo != SIGTRAP){
+			fprintf(stderr, "%s: ptrace(%d, %d, %lx, %lx): Success, but not recently trapped. Aborting!\n", program_invocation_short_name, \
+					(int) PTRACE_GETSIGINFO, (int) target->pid, (long unsigned int) NULL, \
+					(long unsigned int) &siginfo);
+			free(target);
+			return(NULL);
+		}
 	}
 
 	if((retval = ptrace(PTRACE_GETREGS, target->pid, NULL, &(target->saved_regs))) == -1){
@@ -83,6 +108,58 @@ struct ptrace_do *ptrace_do_init(int pid){
 		return(NULL);
 	}
 
+	// The tactic for performing syscall injection is to fill the registers to the appropriate values for your syscall,
+	// then point $rip at a piece of executable memory that contains the SYSCALL instruction.
+
+	// If we came in from a PTRACE_ATTACH call, then it's likely we are on a syscall edge, and can save time by just
+	// using the one SIZEOF_SYSCALL addresses behind where we are right now.
+	errno = 0;
+	peekdata = ptrace(PTRACE_PEEKTEXT, target->pid, (target->saved_regs).rip - SIZEOF_SYSCALL, NULL);
+
+	if(!errno && ((0x000000000000ffff & peekdata) == 0x050f)){
+		target->syscall_address = (target->saved_regs).rip - SIZEOF_SYSCALL;
+
+	// Otherwise, we will need to start stepping through the various regions of executable memory looking for 
+	// a SYSCALL instruction.
+	}else{
+		if((target->map_head = get_proc_pid_maps(target->pid)) == NULL){
+			fprintf(stderr, "%s: get_proc_pid_maps(%d): %s\n", program_invocation_short_name, \
+					(int) target->pid, strerror(errno));
+			free(target);
+			return(NULL);
+		}
+
+		map_current = target->map_head;
+		while(map_current){
+
+			if(target->syscall_address){
+				break;
+			}
+
+			if((map_current->perms & MAPS_EXECUTE)){
+
+				for(i = map_current->start_address; i < (map_current->end_address - sizeof(i)); i++){
+					errno = 0;
+					peekdata = ptrace(PTRACE_PEEKTEXT, target->pid, i, NULL);
+					if(errno){
+						fprintf(stderr, "%s: ptrace(%d, %d, %lx, %lx): %s\n", program_invocation_short_name, \
+								(int) PTRACE_PEEKTEXT, (int) target->pid, i, \
+								(long unsigned int) NULL, strerror(errno));
+						free(target);
+						free_parse_maps_list(target->map_head);
+						return(NULL);
+					}
+
+					if((0x000000000000ffff & peekdata) == 0x050f){
+						target->syscall_address = i;
+						break;
+					}
+				}
+			}
+
+			map_current = map_current->next;
+		}
+	}
 	return(target);
 }
 
@@ -281,7 +358,6 @@ void *ptrace_do_pull_mem(struct ptrace_do *target, void *local_address){
 	return((void *) node->remote_address);
 }
 
-
 /**********************************************************************
  *	 
  * void *ptrace_do_get_remote_addr(struct ptrace_do *target, void *local_address) 
@@ -310,7 +386,7 @@ void *ptrace_do_get_remote_addr(struct ptrace_do *target, void *local_address){
 				program_invocation_short_name, (unsigned long) target, (unsigned long) local_address);
 		return(NULL);
 	}
-	
+
 	return((void *) node->remote_address);
 }
 
@@ -351,6 +427,7 @@ unsigned long ptrace_do_syscall(struct ptrace_do *target, unsigned long rax, \
 	int retval, status, sig_remember = 0;
 	struct user_regs_struct attack_regs;
 
+
 	/*
 	 * There are two possible failure modes when calling ptrace_do_syscall():
 	 *	
@@ -379,7 +456,7 @@ unsigned long ptrace_do_syscall(struct ptrace_do *target, unsigned long rax, \
 	attack_regs.r8 = r8;
 	attack_regs.r9 = r9;
 
-	attack_regs.rip = (target->saved_regs.rip) - SIZEOF_SYSENTER;
+	attack_regs.rip = target->syscall_address;
 
 	if((retval = ptrace(PTRACE_SETREGS, target->pid, NULL, &attack_regs)) == -1){
 		fprintf(stderr, "%s: ptrace(%d, %d, %lx, %lx): %s\n", program_invocation_short_name, \
@@ -447,6 +524,14 @@ RETRY:
 		kill(target->pid, sig_remember);
 	}
 
+	// Let's reset this to what it was upon entry.
+	if((retval = ptrace(PTRACE_SETREGS, target->pid, NULL, &(target->saved_regs))) == -1){
+		fprintf(stderr, "%s: ptrace(%d, %d, %lx, %lx): %s\n", program_invocation_short_name, \
+				(int) PTRACE_SETREGS, (int) target->pid, (long unsigned int) NULL, \
+				(long unsigned int) &(target->saved_regs), strerror(errno));
+		return(-1);
+	}
+
 	// Made it this far. Sounds like the ptrace_do_syscall() was fine. :)
 	errno = 0;
 	return(attack_regs.rax);
@@ -511,4 +596,74 @@ void ptrace_do_cleanup(struct ptrace_do *target){
 	}
 
 	free(target);
+}
+
+
+/**********************************************************************
+ *
+ *	void ptrace_do_free(struct ptrace_do *target, void *local_address, int operation)
+ *
+ *		Input:
+ *			This sessions ptrace_do object, the local_address of the joint memory node,
+ *			and the way you would like it freed.
+ *
+ *		Output:
+ *			None.
+ *
+ *		Purpose:
+ *			To dispose of unused objects, both local and / or remote. 
+ *
+ *		Operations:
+ *			FREE_LOCAL   - Destroy the local data, but leave the remote data intact.
+ *			FREE_REMOTE  - Destroy the remote data, but leave the local data intact.
+ *			FREE_BOTH    - Destroy both the local and remote data.
+ *
+ *		Notes:
+ *			Regardless of the operation chosen, the node associated with the local_address
+ *			will be destroyed. 
+ *
+ *			This function is useful for using FREE_LOCAL to disassociate the remote 
+ *			data with the controler process, while leaving it intact for use after a 
+ *			PTRACE_DETACH call. Also, when you call ptrace_do_cleanup(), all 
+ *			nodes that have not been manually delt with will be destroyed and the memory
+ *			will be freed, both remote and local. 
+ *
+ **********************************************************************/
+void ptrace_do_free(struct ptrace_do *target, void *local_address, int operation){
+	int retval;
+	struct mem_node *this_node, *previous_node;
+
+	previous_node = NULL;
+	this_node = target->mem_head;
+
+	while(this_node){
+		if(this_node->local_address == local_address){
+			break;
+		}	
+		previous_node = this_node;
+		this_node = this_node->next;
+	}
+
+	if(operation & FREE_REMOTE){
+		if((retval = (int) ptrace_do_syscall(target, \
+						__NR_munmap, this_node->remote_address, this_node->word_count * sizeof(long), \
+						0, 0, 0, 0)) < 0){
+			fprintf(stderr, "%s: ptrace_do_syscall(%lx, %d, %lx, %d, %d, %d, %d, %d): %s\n", \
+					program_invocation_short_name, \
+					(unsigned long) target, __NR_munmap, this_node->remote_address, \
+					(int) (this_node->word_count * sizeof(long)), 0, 0, 0, 0, strerror(-retval));
+		}	
+	}
+
+	if(operation & FREE_LOCAL){
+		free(this_node->local_address);
+	}
+
+	if(previous_node){
+		previous_node->next = this_node->next;
+	}else{
+		target->mem_head = this_node->next;
+	}
+
+	free(this_node);
 }
