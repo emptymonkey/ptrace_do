@@ -19,7 +19,11 @@
 
 
 
+#define SYSCALL	0x050f
+#define SYSCALL_MASK 0x000000000000ffff
 #define SIZEOF_SYSCALL 2
+
+
 #define LIBC_PATH "/lib/libc-"
 
 

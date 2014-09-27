@@ -116,7 +116,7 @@ struct ptrace_do *ptrace_do_init(int pid){
 	errno = 0;
 	peekdata = ptrace(PTRACE_PEEKTEXT, target->pid, (target->saved_regs).rip - SIZEOF_SYSCALL, NULL);
 
-	if(!errno && ((0x000000000000ffff & peekdata) == 0x050f)){
+	if(!errno && ((SYSCALL_MASK & peekdata) == SYSCALL)){
 		target->syscall_address = (target->saved_regs).rip - SIZEOF_SYSCALL;
 
 	// Otherwise, we will need to start stepping through the various regions of executable memory looking for 
@@ -150,7 +150,7 @@ struct ptrace_do *ptrace_do_init(int pid){
 						return(NULL);
 					}
 
-					if((0x000000000000ffff & peekdata) == 0x050f){
+					if((SYSCALL_MASK & peekdata) == SYSCALL){
 						target->syscall_address = i;
 						break;
 					}
