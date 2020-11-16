@@ -4,6 +4,7 @@
 #include <errno.h>
 #include <error.h>
 #include <fcntl.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -79,6 +80,9 @@ void *ptrace_do_get_remote_addr(struct ptrace_do *target, void *local_addr);
 /* ptrace_do_syscall() will execute the given syscall inside the remote process. */
 unsigned long ptrace_do_syscall(struct ptrace_do *target, unsigned long rax, \
 		unsigned long rdi, unsigned long rsi, unsigned long rdx, unsigned long r10, unsigned long r8, unsigned long r9);
+
+/* ptrace_do_clear_local() will clear all local allocated memory */
+void ptrace_do_clear_local(struct ptrace_do *target);
 
 /* ptrace_do_cleanup() will detatch and do it's best to clean up the data structures. */
 void ptrace_do_cleanup(struct ptrace_do *target);
