@@ -49,6 +49,8 @@ static int ptrace_do_setup_session(struct ptrace_do *target)
 	unsigned long peekdata;
 	struct parse_maps *map_current;
 
+	target->syscall_address = 0;
+
 	if((retval = ptrace(PTRACE_GETREGS, target->pid, NULL, &(target->saved_regs))) == -1){
 		fprintf(stderr, "%s: ptrace(%d, %d, %lx, %lx): %s\n", program_invocation_short_name, \
 				(int) PTRACE_GETREGS, (int) target->pid, (long unsigned int) NULL, \
