@@ -27,6 +27,92 @@
 
 #include "libptrace_do.h"
 
+/**********************************************************************
+ *
+ *	static int ptrace_do_setup_session(struct ptrace_do *target)
+ *
+ *		Input:
+ *			The ptrace_do object.
+ *
+ *		Output:
+ *			0 on error; non-zero when setup done
+ *
+ *		Purpose:
+ *			(Re)Initialize the session. Must be called after
+ *			attach, and after execve.
+ *
+ **********************************************************************/
+static int ptrace_do_setup_session(struct ptrace_do *target)
+{
+	int retval;
+	unsigned long i;
+	unsigned long peekdata;
+	struct parse_maps *map_current;
+
+	target->syscall_address = 0;
+
+	if((retval = ptrace(PTRACE_GETREGS, target->pid, NULL, &(target->saved_regs))) == -1){
+		fprintf(stderr, "%s: ptrace(%d, %d, %lx, %lx): %s\n", program_invocation_short_name, \
+				(int) PTRACE_GETREGS, (int) target->pid, (long unsigned int) NULL, \
+				(long unsigned int) &(target->saved_regs), strerror(errno));
+		return 0;
+	}
+
+	// The tactic for performing syscall injection is to fill the registers to the appropriate values for your syscall,
+	// then point $rip at a piece of executable memory that contains the SYSCALL instruction.
+
+	// If we came in from a PTRACE_ATTACH call, then it's likely we are on a syscall edge, and can save time by just
+	// using the one SIZEOF_SYSCALL addresses behind where we are right now.
+	errno = 0;
+	peekdata = ptrace(PTRACE_PEEKTEXT, target->pid, (target->saved_regs).rip - SIZEOF_SYSCALL, NULL);
+
+	if(!errno && ((SYSCALL_MASK & peekdata) == SYSCALL)){
+		target->syscall_address = (target->saved_regs).rip - SIZEOF_SYSCALL;
+
+	// Otherwise, we will need to start stepping through the various regions of executable memory looking for 
+	// a SYSCALL instruction.
+	}else{
+		if((target->map_head = get_proc_pid_maps(target->pid)) == NULL){
+			fprintf(stderr, "%s: get_proc_pid_maps(%d): %s\n", program_invocation_short_name, \
+					(int) target->pid, strerror(errno));
+			return 0;
+		}
+
+		map_current = target->map_head;
+		while(map_current){
+
+			if(target->syscall_address){
+				break;
+			}
+
+			if((map_current->perms & MAPS_EXECUTE)){
+
+				for(i = map_current->start_address; i < (map_current->end_address - sizeof(i)); i++){
+					errno = 0;
+					peekdata = ptrace(PTRACE_PEEKTEXT, target->pid, i, NULL);
+					if(errno){
+						fprintf(stderr, "%s: ptrace(%d, %d, %lx, %lx): %s\n", program_invocation_short_name, \
+								(int) PTRACE_PEEKTEXT, (int) target->pid, i, \
+								(long unsigned int) NULL, strerror(errno));
+						free_parse_maps_list(target->map_head);
+						return 0;
+					}
+
+					if((SYSCALL_MASK & peekdata) == SYSCALL){
+						target->syscall_address = i;
+						break;
+					}
+				}
+			}
+
+			map_current = map_current->next;
+		}
+
+		free_parse_maps_list(target->map_head);
+	}
+
+	return 1;
+}
 
 /**********************************************************************
  *
@@ -45,12 +131,8 @@
  **********************************************************************/
 struct ptrace_do *ptrace_do_init(int pid){
 	int retval, status;
-	unsigned long peekdata;
-	unsigned long i;
 	struct ptrace_do *target;
 	siginfo_t siginfo;
-
-	struct parse_maps *map_current;
 
 
 	if((target = (struct ptrace_do *) malloc(sizeof(struct ptrace_do))) == NULL){
@@ -100,66 +182,11 @@ struct ptrace_do *ptrace_do_init(int pid){
 		}
 	}
 
-	if((retval = ptrace(PTRACE_GETREGS, target->pid, NULL, &(target->saved_regs))) == -1){
-		fprintf(stderr, "%s: ptrace(%d, %d, %lx, %lx): %s\n", program_invocation_short_name, \
-				(int) PTRACE_GETREGS, (int) target->pid, (long unsigned int) NULL, \
-				(long unsigned int) &(target->saved_regs), strerror(errno));
+	if (!ptrace_do_setup_session(target)) {
 		free(target);
 		return(NULL);
 	}
 
-	// The tactic for performing syscall injection is to fill the registers to the appropriate values for your syscall,
-	// then point $rip at a piece of executable memory that contains the SYSCALL instruction.
-
-	// If we came in from a PTRACE_ATTACH call, then it's likely we are on a syscall edge, and can save time by just
-	// using the one SIZEOF_SYSCALL addresses behind where we are right now.
-	errno = 0;
-	peekdata = ptrace(PTRACE_PEEKTEXT, target->pid, (target->saved_regs).rip - SIZEOF_SYSCALL, NULL);
-
-	if(!errno && ((SYSCALL_MASK & peekdata) == SYSCALL)){
-		target->syscall_address = (target->saved_regs).rip - SIZEOF_SYSCALL;
-
-	// Otherwise, we will need to start stepping through the various regions of executable memory looking for 
-	// a SYSCALL instruction.
-	}else{
-		if((target->map_head = get_proc_pid_maps(target->pid)) == NULL){
-			fprintf(stderr, "%s: get_proc_pid_maps(%d): %s\n", program_invocation_short_name, \
-					(int) target->pid, strerror(errno));
-			free(target);
-			return(NULL);
-		}
-
-		map_current = target->map_head;
-		while(map_current){
-
-			if(target->syscall_address){
-				break;
-			}
-
-			if((map_current->perms & MAPS_EXECUTE)){
-
-				for(i = map_current->start_address; i < (map_current->end_address - sizeof(i)); i++){
-					errno = 0;
-					peekdata = ptrace(PTRACE_PEEKTEXT, target->pid, i, NULL);
-					if(errno){
-						fprintf(stderr, "%s: ptrace(%d, %d, %lx, %lx): %s\n", program_invocation_short_name, \
-								(int) PTRACE_PEEKTEXT, (int) target->pid, i, \
-								(long unsigned int) NULL, strerror(errno));
-						free(target);
-						free_parse_maps_list(target->map_head);
-						return(NULL);
-					}
-
-					if((SYSCALL_MASK & peekdata) == SYSCALL){
-						target->syscall_address = i;
-						break;
-					}
-				}
-			}
-
-			map_current = map_current->next;
-		}
-	}
 	return(target);
 }
 
@@ -524,6 +551,18 @@ RETRY:
 		kill(target->pid, sig_remember);
 	}
 
+	// Invalidate local memory and reinitialize session after execve
+	if ((rax == __NR_execve || rax == __NR_execveat) && (int64_t)attack_regs.rax >= 0) {
+		ptrace_do_clear_local(target);
+		if (!ptrace_do_setup_session(target)) {
+			fprintf(stderr, "%s: ptrace_do_setup_session(%lx)\n", program_invocation_short_name, \
+					(long unsigned int) target);
+			return(-1);
+		}
+		errno = 0;
+		return attack_regs.rax;
+	}
+
 	// Let's reset this to what it was upon entry.
 	if((retval = ptrace(PTRACE_SETREGS, target->pid, NULL, &(target->saved_regs))) == -1){
 		fprintf(stderr, "%s: ptrace(%d, %d, %lx, %lx): %s\n", program_invocation_short_name, \
@@ -596,6 +635,37 @@ void ptrace_do_cleanup(struct ptrace_do *target){
 	}
 
 	free(target);
+}
+
+/**********************************************************************
+ *
+ *  void ptrace_do_clear_local(struct ptrace_do *target)
+ *
+ *		Input:
+ *			This sessions ptrace_do_object.
+ *
+ *		Output:
+ *			None.
+ *
+ *		Purpose:
+ *			To dispose all local objects. This is necessary when
+ *			the objects become invalid, for example, after a call
+ *			to execve.
+ *
+ **********************************************************************/
+void ptrace_do_clear_local(struct ptrace_do *target)
+{
+	struct mem_node *this_node, *previous_node;
+
+	this_node = target->mem_head;
+	while (this_node) {
+		free(this_node->local_address);
+		previous_node = this_node;
+		this_node = this_node->next;
+		free(previous_node);
+	}
+
+	target->mem_head = NULL;
 }
 
 

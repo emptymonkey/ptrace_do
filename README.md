@@ -61,6 +61,9 @@ Here is the brief list of function interfaces. These functions are documented in
 	
 	/* ptrace_do_free() frees a joint memory object. "operation" refers to the FREE_* modes above. */
 	void ptrace_do_free(struct ptrace_do *target, void *local_address, int operation);
+
+	/* ptrace_do_clear_local() frees allocated memory ignoring remote allocations (used when mmaps change, for example, after execve) */
+	void ptrace_do_clear_local(struct ptrace_do *target);
 	
 	/* ptrace_do_push_mem() and ptrace_do_pull_mem() synchronize the memory states between local and remote buffers. */
 	void *ptrace_do_push_mem(struct ptrace_do *target, void *local_address);
@@ -89,6 +92,8 @@ Here is the brief list of function interfaces. These functions are documented in
 	
 	/* Mostly for debugging, but in case it comes in handy, this function prints the parse_maps object members. */
 	void dump_parse_maps_list(struct parse_maps *head);
+
+Note that if an execve syscall is executed, all memory allocations will be invalidated.
 
 ## Installation ##
 
