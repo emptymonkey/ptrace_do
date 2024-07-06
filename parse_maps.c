@@ -30,7 +30,8 @@ struct parse_maps *get_proc_pid_maps(pid_t target){
 
 	struct parse_maps *map_head = NULL, *map_tail = NULL, *map_tmp;
 
-	int fd, buffer_len;
+	int fd = -1;
+	int buffer_len;
 	int ret_int;
 
 	char *buffer;
@@ -98,7 +99,9 @@ struct parse_maps *get_proc_pid_maps(pid_t target){
 
 
 	free(buffer);
-	close(fd);
+	if(fd > -1){
+		close(fd);
+	}
 	return(map_head);
 
 
@@ -128,7 +131,7 @@ CLEAN_UP:
 struct parse_maps *parse_next_line(char *line){
 
 	struct parse_maps *node = NULL;
-	char *token_head, *token_tail;
+	char *token_head, *token_tail, *retval_char_star;
 
 	// The comments mentioning data types are just trying to demonstrate
 	// the type of data we will be parsing in that area.
@@ -140,29 +143,31 @@ struct parse_maps *parse_next_line(char *line){
 
 	// unsigned long start_address;
 	token_head = line;
-	if((token_tail = strchr(token_head, '-')) == NULL){
+	if((retval_char_star = strchr(token_head, '-')) == NULL){
 		fprintf(stderr, "strchr(%s, '%c'): %s\n", token_head, '-', strerror(errno));
 		goto CLEAN_UP;
 	}
-
+	token_tail = retval_char_star;
 	*token_tail = '\0';
 	node->start_address = strtoul(token_head, NULL, 16);
 
 	// unsigned long end_address;
 	token_head = token_tail + 1;
-	if((token_tail = strchr(token_head, ' ')) == NULL){
+	if((retval_char_star = strchr(token_head, ' ')) == NULL){
 		fprintf(stderr, "strchr(%s, '%c'): %s\n", token_head, ' ', strerror(errno));
 		goto CLEAN_UP;
 	}
+	token_tail = retval_char_star;
 	*token_tail = '\0';
 	node->end_address = strtoul(token_head, NULL, 16);
 
 	// unsigned int perms;
 	token_head = token_tail + 1;
-	if((token_tail = strchr(token_head, ' ')) == NULL){
+	if((retval_char_star = strchr(token_head, ' ')) == NULL){
 		fprintf(stderr, "strchr(%s, '%c'): %s\n", token_head, ' ', strerror(errno));
 		goto CLEAN_UP;
 	}
+	token_tail = retval_char_star;
 	*token_tail = '\0';
 	if(*(token_head++) == 'r'){
 		node->perms |= MAPS_READ;
@@ -181,47 +186,52 @@ struct parse_maps *parse_next_line(char *line){
 
 	// unsigned long offset;
 	token_head = token_tail + 1;
-	if((token_tail = strchr(token_head, ' ')) == NULL){
+	if((retval_char_star = strchr(token_head, ' ')) == NULL){
 		fprintf(stderr, "strchr(%s, '%c'): %s\n", token_head, ' ', strerror(errno));
 		goto CLEAN_UP;
 	}
+	token_tail = retval_char_star;
 	*token_tail = '\0';
 	node->offset = strtoul(token_head, NULL, 16);
 
 	// unsigned int dev_major;
 	token_head = token_tail + 1;
-	if((token_tail = strchr(token_head, ':')) == NULL){
+	if((retval_char_star = strchr(token_head, ':')) == NULL){
 		fprintf(stderr, "strchr(%s, '%c'): %s\n", token_head, ':', strerror(errno));
 		goto CLEAN_UP;
 	}
+	token_tail = retval_char_star;
 	*token_tail = '\0';
 	node->dev_major = strtol(token_head, NULL, 16);
 
 	// unsigned int dev_minor;
 	token_head = token_tail + 1;
-	if((token_tail = strchr(token_head, ' ')) == NULL){
+	if((retval_char_star = strchr(token_head, ' ')) == NULL){
 		fprintf(stderr, "strchr(%s, '%c'): %s\n", token_head, ' ', strerror(errno));
 		goto CLEAN_UP;
 	}
+	token_tail = retval_char_star;
 	*token_tail = '\0';
 	node->dev_minor = strtol(token_head, NULL, 16);
 
 	// unsigned long inode;
 	token_head = token_tail + 1;
-	if((token_tail = strchr(token_head, ' ')) == NULL){
+	if((retval_char_star = strchr(token_head, ' ')) == NULL){
 		fprintf(stderr, "strchr(%s, '%c'): %s\n", token_head, ' ', strerror(errno));
 		goto CLEAN_UP;
 	}
+	token_tail = retval_char_star;
 	*token_tail = '\0';
 	node->inode = strtol(token_head, NULL, 10);
 
 	// char pathname[PATH_MAX];
 	token_head = token_tail + 1;
 	if(*token_head){
-		if((token_head = strrchr(token_head, ' ')) == NULL){
+		if((retval_char_star = strrchr(token_head, ' ')) == NULL){
 			fprintf(stderr, "strrchr(%s, '%c'): %s\n", token_head, ' ', strerror(errno));
 			goto CLEAN_UP;
 		}
+		token_head = retval_char_star;
 		token_head++;
 		memcpy(node->pathname, token_head, strlen(token_head));
 	}

@@ -145,8 +145,8 @@ struct ptrace_do *ptrace_do_init(int pid){
 						fprintf(stderr, "%s: ptrace(%d, %d, %lx, %lx): %s\n", program_invocation_short_name, \
 								(int) PTRACE_PEEKTEXT, (int) target->pid, i, \
 								(long unsigned int) NULL, strerror(errno));
-						free(target);
 						free_parse_maps_list(target->map_head);
+						free(target);
 						return(NULL);
 					}
 
